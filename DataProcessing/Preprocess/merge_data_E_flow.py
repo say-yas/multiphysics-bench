@@ -87,5 +87,5 @@ for i in range(number):
 
 
 print("Finished processing all files.")
-print(f"运行时间: {time.time() - start_time} 秒")    
+print(f"Elapsed time: {time.time() - start_time} seconds")     
 
