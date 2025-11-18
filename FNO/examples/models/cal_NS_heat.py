@@ -69,7 +69,7 @@ if __name__ == '__main__':
     model.load_state_dict(torch.load("./checkpoints/NS_heat_10000/1/model_epoch_49_state_dict.pt", weights_only=False))
     print("Model weights loaded from model_weights.pt")
 
-    # 将模型设置为评估模式
+    # Set the model to evaluation mode
     model.eval()
 
     u_metric_total, v_metric_total, T_metric_total, sample_total = 0, 0, 0, 0
@@ -92,39 +92,40 @@ if __name__ == '__main__':
         res_dict['nRMSE']['T'] += T_metric.sum()
 
     def get_RMSE():
-        u, v, T = pred  # pred是模型预测值 (B, C, H, W)
-        # 计算各通道RMSE（按batch和空间维度平均）
+        u, v, T = pred  # pred is the model prediction (B, C, H, W)
+        # Compute RMSE for each channel (averaged over batch and spatial dimensions)
 
         u_metric = torch.sqrt(torch.mean((u - outputs[:, 0, :, :]) ** 2, dim=(1, 2)))
         v_metric = torch.sqrt(torch.mean((v - outputs[:, 1, :, :]) ** 2, dim=(1, 2)))
         T_metric = torch.sqrt(torch.mean((T - outputs[:, 2, :, :]) ** 2, dim=(1, 2)))
 
-        # 累加到结果字典
+        # Accumulate into the result dictionary
         res_dict['RMSE']['u'] += u_metric.sum()
         res_dict['RMSE']['v'] += v_metric.sum()
         res_dict['RMSE']['T'] += T_metric.sum()
 
     def get_MaxError():
         u, v, T = pred
-        # 计算各通道的绝对误差最大值（沿空间维度）
-        u_metric = torch.abs(u - outputs[:, 0, :, :]).flatten(1).max(dim=1)[0]  # 先展平再求max
-        v_metric = torch.abs(v - outputs[:, 1, :, :]).flatten(1).max(dim=1)[0]  # 先展平再求max
-        T_metric = torch.abs(T - outputs[:, 2, :, :]).flatten(1).max(dim=1)[0]  # 先展平再求max
-        # 累加结果
+        # Compute the maximum absolute error for each channel (across spatial dimensions)
+        u_metric = torch.abs(u - outputs[:, 0, :, :]).flatten(1).max(dim=1)[0]  # flatten first then take max
+        v_metric = torch.abs(v - outputs[:, 1, :, :]).flatten(1).max(dim=1)[0]  # flatten first then take max
+        T_metric = torch.abs(T - outputs[:, 2, :, :]).flatten(1).max(dim=1)[0]  # flatten first then take max
+        # Accumulate results
         res_dict['MaxError']['u'] += u_metric.sum()
         res_dict['MaxError']['v'] += v_metric.sum()
         res_dict['MaxError']['T'] += T_metric.sum()
 
     def get_bRMSE():
         u, v, T = pred
-        # 提取边界像素（上下左右各1像素）
+        # Extract boundary pixels (1 pixel each for top, bottom, left and right)
         boundary_mask = torch.zeros_like(outputs[:, 0, :, :], dtype=bool)
-        boundary_mask[:, 0, :] = True  # 上边界
-        boundary_mask[:, -1, :] = True  # 下边界
-        boundary_mask[:, :, 0] = True  # 左边界
-        boundary_mask[:, :, -1] = True  # 右边界
+        boundary_mask[:, 0, :] = True  # top boundary
+        boundary_mask[:, -1, :] = True  # bottom boundary
+        boundary_mask[:, :, 0] = True  # left boundary
+        boundary_mask[:, :, -1] = True  # right boundary
 
-        # 计算边界RMSE
+        # Compute boundary RMSE: ensure boundary_mask is on the same device as the prediction tensor
+        boundary_mask = boundary_mask.to(u.device)
         u_boundary_pred = u[boundary_mask].view(u.shape[0], -1)
         u_boundary_true = outputs[:, 0, :, :][boundary_mask].view(u.shape[0], -1)
         u_metric = torch.sqrt(torch.mean((u_boundary_pred - u_boundary_true) ** 2, dim=1))
@@ -141,15 +142,15 @@ if __name__ == '__main__':
         res_dict['bRMSE']['T'] += T_metric.sum()
 
     def get_fRMSE():
-        u, v, T = pred  # pred形状: (Batch, Channel, Height, Width)
+        u, v, T = pred  # pred shape: (Batch, Channel, Height, Width)
 
-        # 初始化结果存储
+        # Initialize result storage
         for freq_band in ['low', 'middle', 'high']:
             res_dict['fRMSE'][f'u_{freq_band}'] = 0.0
             res_dict['fRMSE'][f'v_{freq_band}'] = 0.0
             res_dict['fRMSE'][f'T_{freq_band}'] = 0.0
 
-        # 定义频段范围 (基于论文设置)
+        # Define frequency band ranges (based on the paper's settings)
         freq_bands = {
             'low': (0, 4),  # k_min=0, k_max=4
             'middle': (5, 12),  # k_min=5, k_max=12
@@ -157,13 +158,13 @@ if __name__ == '__main__':
         }
 
         def compute_band_fft(pred_fft, true_fft, k_min, k_max, H, W):
-            """计算指定频段的fRMSE"""
-            # 生成频段掩码
+            """Compute the fRMSE for the specified frequency band"""
+            # Generate the frequency band mask
             kx = torch.arange(H, device=pred_fft.device)
             ky = torch.arange(W, device=pred_fft.device)
             kx, ky = torch.meshgrid(kx, ky, indexing='ij')
 
-            # 计算径向波数 (避免重复计算0和Nyquist频率)
+            # Compute radial wavenumbers (avoid double-counting 0 and Nyquist frequencies)
             r = torch.sqrt(kx ** 2 + ky ** 2)
             if k_max is None:
                 mask = (r >= k_min)
@@ -171,29 +172,29 @@ if __name__ == '__main__':
             else:
                 mask = (r >= k_min) & (r <= k_max)
 
-            # 计算误差
+            # Compute error
             diff_fft = torch.abs(pred_fft - true_fft) ** 2
-            band_error = diff_fft[:, mask].sum(dim=1)  # 对空间维度
+            band_error = diff_fft[:, mask].sum(dim=1)  # sum over spatial dimensions
             band_error = torch.sqrt(band_error) / (k_max - k_min + 1)
             return band_error
 
-        # 对每个通道计算fRMSE
+        # Compute fRMSE for each channel
         for channel_idx, (pred_ch, true_ch, name) in enumerate([
             (u, outputs[:, 0, :, :], 'u'),
             (v, outputs[:, 1, :, :], 'v'),
             (T, outputs[:, 2, :, :], 'T')
         ]):
-            # 傅里叶变换 (shift后低频在中心)
+            # Fourier transform (after shifting, low frequencies are centered)
             pred_fft = torch.fft.fft2(pred_ch)
             true_fft = torch.fft.fft2(true_ch)
             H, W = pred_ch.shape[-2], pred_ch.shape[-1]
 
-            # 计算各频段
+            # Compute frequency bands
             for band, (k_min, k_max) in freq_bands.items():
                 error = compute_band_fft(pred_fft, true_fft, k_min, k_max, H, W)
                 res_dict['fRMSE'][f'{name}_{band}'] += error.sum()
 
-    #开始测试
+    # Start testing
     for idx, sample in enumerate(tqdm.tqdm(test_loaders[128])):
         with torch.no_grad():
             print(sample['y'].mean())
@@ -204,7 +205,7 @@ if __name__ == '__main__':
             pred_outputs, _ = data_processor.postprocess(pred_outputs)
             pred_outputs = pred_outputs.squeeze()
 
-            # GT 反归一化
+            # GT denormalization
             outputs[:, 0, :, :] = (
                         (outputs[:, 0, :, :] + 0.9) / 1.8 * (model.max_u_u - model.min_u_u) + model.min_u_u).to(
                 torch.float64)
@@ -214,7 +215,7 @@ if __name__ == '__main__':
             outputs[:, 2, :, :] = ((outputs[:, 2, :, :] + 0.9) / 1.8 * (model.max_T - model.min_T) + model.min_T).to(
                 torch.float64)
 
-            # Pred 反归一化
+            # Denormalize predictions
             pred_outputs[:,0,:,:] = ((pred_outputs[:,0,:,:] + 0.9) / 1.8 * (model.max_u_u - model.min_u_u) + model.min_u_u).to(
                 torch.float64)
             pred_outputs[:,1,:,:] = ((pred_outputs[:,1,:,:] + 0.9) / 1.8 * (model.max_u_v - model.min_u_v) + model.min_u_v).to(
@@ -242,7 +243,7 @@ if __name__ == '__main__':
     for metric in res_dict:
         for var in res_dict[metric]:
             print(f'{metric}\t\t{var}:\t\t{res_dict[metric][var]}')
-    # TODO 保存log
+    # TODO: save log
     with open(os.path.join(save_dir, f'log_final.json'), "w", encoding="utf-8") as f:
         json.dump(res_dict, f, ensure_ascii=False)
 

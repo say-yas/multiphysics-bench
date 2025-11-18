@@ -36,7 +36,7 @@ if __name__ == '__main__':
     model = model.to(device)
 
     train_data_base_path = "/data/yangchangfan/DiffusionPDE/data/training/Elder/"
-    # -------------------- 加载归一化范围 --------------------
+    # -------------------- Load normalization ranges --------------------
     range_allS_c = sio.loadmat(os.path.join(train_data_base_path, "S_c/range_S_c_t.mat"))['range_S_c_t'][0]
     range_allu_u = sio.loadmat(os.path.join(train_data_base_path, "u_u/range_u_u_t_999.mat"))['range_u_u_t_999'][1:]
     range_allu_v = sio.loadmat(os.path.join(train_data_base_path, "u_v/range_u_v_t_99.mat"))['range_u_v_t_99'][1:]
@@ -52,7 +52,7 @@ if __name__ == '__main__':
     model.load_state_dict(torch.load("./checkpoints/Elder_new/14/model_epoch_49_state_dict.pt", weights_only=False))
     print("Model weights loaded from model_weights.pt")
 
-    # 将模型设置为评估模式
+    # Set the model to evaluation mode
     model.eval()
 
     res_dict = {
@@ -86,9 +86,9 @@ if __name__ == '__main__':
 
     def get_MaxError():
         for t in range(10):
-            u_metric = torch.abs(u_u_N[:,t,:,:] - u_u_gt[:,t,:,:]).flatten(1).max(dim=1)[0]  # 先展平再求max
-            v_metric = torch.abs(u_v_N[:,t,:,:] - u_v_gt[:,t,:,:]).flatten(1).max(dim=1)[0]  # 先展平再求max
-            c_flow_metric = torch.abs(c_flow_N[:,t,:,:] - c_flow_gt[:,t,:,:]).flatten(1).max(dim=1)[0]  # 先展平再求max
+            u_metric = torch.abs(u_u_N[:, t, :, :] - u_u_gt[:, t, :, :]).flatten(1).max(dim=1)[0]  # flatten first then take max
+            v_metric = torch.abs(u_v_N[:, t, :, :] - u_v_gt[:, t, :, :]).flatten(1).max(dim=1)[0]  # flatten first then take max
+            c_flow_metric = torch.abs(c_flow_N[:, t, :, :] - c_flow_gt[:, t, :, :]).flatten(1).max(dim=1)[0]  # flatten first then take max
 
             res_dict['MaxError']['u_u'][f'{t}'] += u_metric.sum()
             res_dict['MaxError']['u_v'][f'{t}'] += v_metric.sum()
@@ -97,10 +97,10 @@ if __name__ == '__main__':
     def get_bRMSE():
         for t in range(10):
             boundary_mask = torch.zeros_like(u_u_N[:, 0, :, :], dtype=bool)
-            boundary_mask[:, 0, :] = True  # 上边界
-            boundary_mask[:, -1, :] = True  # 下边界
-            boundary_mask[:, :, 0] = True  # 左边界
-            boundary_mask[:, :, -1] = True  # 右边界
+            boundary_mask[:, 0, :] = True  # top boundary
+            boundary_mask[:, -1, :] = True  # bottom boundary
+            boundary_mask[:, :, 0] = True  # left boundary
+            boundary_mask[:, :, -1] = True  # right boundary
 
             u_boundary_pred = u_u_N[:,t,:,:][boundary_mask].view(u_u_N[:,t,:,:].shape[0], -1)
             u_boundary_true = u_u_gt[:,t,:,:][boundary_mask].view(u_u_gt[:,t,:,:].shape[0], -1)
@@ -121,16 +121,16 @@ if __name__ == '__main__':
         freq_bands = {
             'low': (0, 4),  # k_min=0, k_max=4
             'middle': (5, 12),  # k_min=5, k_max=12
-            'high': (13, None)  # k_min=13, k_max=∞ (实际取Nyquist频率)
+            # k_min=13, k_max=∞ (actually use the Nyquist frequency)
         }
         def compute_band_fft(pred_fft, true_fft, k_min, k_max, H, W):
-            """计算指定频段的fRMSE"""
-            # 生成频段掩码
+            """Compute the fRMSE for the specified frequency band"""
+            # Generate the frequency band mask
             kx = torch.arange(H, device=pred_fft.device)
             ky = torch.arange(W, device=pred_fft.device)
             kx, ky = torch.meshgrid(kx, ky, indexing='ij')
 
-            # 计算径向波数 (避免重复计算0和Nyquist频率)
+            # Compute radial wavenumbers (avoid double-counting 0 and Nyquist frequencies)
             r = torch.sqrt(kx ** 2 + ky ** 2)
             if k_max is None:
                 mask = (r >= k_min)
@@ -138,9 +138,9 @@ if __name__ == '__main__':
             else:
                 mask = (r >= k_min) & (r <= k_max)
 
-            # 计算误差
+            # compute error
             diff_fft = torch.abs(pred_fft - true_fft) ** 2
-            band_error = diff_fft[:, mask].sum(dim=1)  # 对空间维度
+            band_error = diff_fft[:, mask].sum(dim=1)  # sum over spatial dimensions
             band_error = torch.sqrt(band_error) / (k_max - k_min + 1)
             return band_error
 
@@ -150,17 +150,17 @@ if __name__ == '__main__':
                 (u_v_N[:,t,:,:], u_v_gt[:,t,:,:], 'u_v'),
                 (c_flow_N[:,t,:,:], c_flow_gt[:,t,:,:], 'c_flow')
             ]):
-                # 傅里叶变换 (shift后低频在中心)
+                # Fourier transform (after shift, low frequencies are centered)
                 pred_fft = torch.fft.fft2(pred_ch)
                 true_fft = torch.fft.fft2(true_ch)
                 H, W = pred_ch.shape[-2], pred_ch.shape[-1]
 
-                # 计算各频段
+                # compute frequency bands
                 for band, (k_min, k_max) in freq_bands.items():
                     error = compute_band_fft(pred_fft, true_fft, k_min, k_max, H, W)
                     res_dict[f'fRMSE_{band}'][f'{name}'][f'{t}'] += error.sum()
 
-    #开始测试
+    # start testing
     sample_total = 0
     for idx, sample in enumerate(tqdm.tqdm(test_loaders[128])):
         with torch.no_grad():
@@ -214,7 +214,7 @@ if __name__ == '__main__':
             print(f'{metric}\t\t{var}:\t\t{res_dict[metric][var]}')
 
 
-    # TODO 保存log
+    # TODO: save log
     with open(os.path.join(save_dir, f'log_final.json'), "w", encoding="utf-8") as f:
         json.dump(res_dict, f, ensure_ascii=False)
 

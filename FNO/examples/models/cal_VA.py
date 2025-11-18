@@ -53,7 +53,7 @@ if __name__ == '__main__':
     model.load_state_dict(torch.load("./checkpoints/VA_10000/4/model_epoch_49_state_dict.pt", weights_only=False))
     print("Model weights loaded from model_weights.pt")
 
-    # 将模型设置为评估模式
+    # Set the model to evaluation mode
     model.eval()
 
     u_metric_total, v_metric_total, T_metric_total, sample_total = 0, 0, 0, 0
@@ -98,12 +98,12 @@ if __name__ == '__main__':
             res_dict['MaxError'][f'{var}_imag'] += metric_value_imag.sum()
 
     def get_bRMSE():
-        # 提取边界像素（上下左右各1像素）
+        # Extract boundary pixels (1 pixel on each of top, bottom, left, and right)
         boundary_mask = torch.zeros_like(outputs[:, 0, :, :], dtype=bool)
-        boundary_mask[:, 0, :] = True  # 上边界
-        boundary_mask[:, -1, :] = True  # 下边界
-        boundary_mask[:, :, 0] = True  # 左边界
-        boundary_mask[:, :, -1] = True  # 右边界
+        boundary_mask[:, 0, :] = True  # top boundary
+        boundary_mask[:, -1, :] = True  # bottom boundary
+        boundary_mask[:, :, 0] = True  # left boundary
+        boundary_mask[:, :, -1] = True  # right boundary
 
         for var_idx, var in enumerate(model.variables):
             boundary_pred_real = pred_outputs[:,var_idx*2,:,:][boundary_mask].view(pred_outputs.shape[0], -1)
@@ -117,7 +117,7 @@ if __name__ == '__main__':
             res_dict['bRMSE'][f'{var}_imag'] += imag_metric.sum()
 
     def get_fRMSE():
-        # 初始化结果存储
+        # Initialize result storage
         for var_idx, var in enumerate(model.variables):
             for freq_band in ['low', 'middle', 'high']:
                 res_dict['fRMSE'][f'{var}_{freq_band}_real'] = 0.0
@@ -128,21 +128,21 @@ if __name__ == '__main__':
                 res_dict['fRMSE'][f'{var}_{freq_band}_imag'] = 0.0
                 res_dict['fRMSE'][f'{var}_{freq_band}_imag'] = 0.0
 
-        # 定义频段范围 (基于论文设置)
+        # Define frequency band ranges (based on the paper's settings)
         freq_bands = {
             'low': (0, 4),  # k_min=0, k_max=4
             'middle': (5, 12),  # k_min=5, k_max=12
-            'high': (13, None)  # k_min=13, k_max=∞ (实际取Nyquist频率)
+            # k_min=13, k_max=∞ (use the Nyquist frequency in practice)
         }
 
         def compute_band_fft(pred_fft, true_fft, k_min, k_max, H, W):
-            """计算指定频段的fRMSE"""
-            # 生成频段掩码
+            """Compute fRMSE for the specified frequency band"""
+            # Generate the frequency band mask
             kx = torch.arange(H, device=pred_fft.device)
             ky = torch.arange(W, device=pred_fft.device)
             kx, ky = torch.meshgrid(kx, ky, indexing='ij')
 
-            # 计算径向波数 (避免重复计算0和Nyquist频率)
+            # Compute radial wavenumbers (avoid double-counting 0 and the Nyquist frequency)
             r = torch.sqrt(kx ** 2 + ky ** 2)
             if k_max is None:
                 mask = (r >= k_min)
@@ -150,9 +150,9 @@ if __name__ == '__main__':
             else:
                 mask = (r >= k_min) & (r <= k_max)
 
-            # 计算误差
+            # Compute the error
             diff_fft = torch.abs(pred_fft - true_fft) ** 2
-            band_error = diff_fft[:, mask].sum(dim=1)  # 对空间维度
+            band_error = diff_fft[:, mask].sum(dim=1)  # sum over spatial dimensions
             band_error = torch.sqrt(band_error) / (k_max - k_min + 1)
             return band_error
 
@@ -173,7 +173,7 @@ if __name__ == '__main__':
                 error = compute_band_fft(pred_fft, true_fft, k_min, k_max, H, W)
                 res_dict['fRMSE'][f'{var}_{band}_imag'] += error.sum()
 
-    #开始测试
+    # Start testing
     for idx, sample in enumerate(tqdm.tqdm(test_loaders[128])):
         with torch.no_grad():
             print(sample['y'].mean())
@@ -218,7 +218,7 @@ if __name__ == '__main__':
     for metric in res_dict:
         for var in res_dict[metric]:
             print(f'{metric}\t\t{var}:\t\t{res_dict[metric][var]}')
-    # TODO 保存log
+    # TODO: save log
     with open(os.path.join(save_dir, f'log_final.json'), "w", encoding="utf-8") as f:
         json.dump(res_dict, f, ensure_ascii=False)
 
