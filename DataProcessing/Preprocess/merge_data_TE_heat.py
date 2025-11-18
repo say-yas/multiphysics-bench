@@ -20,7 +20,7 @@ for i in range(number):
     normal_datamater = np.zeros((128, 128))
     # load mater
     # load poly
-    path_mater = os.path.join(f"../../raw_data/training/TE_heat/mater/", f'{i+1}.mat')
+    path_mater = os.path.join(f"../../../data/multiphys_bench/training/TE_heat/mater/", f'{i+1}.mat')
     mater = sio.loadmat(path_mater)['mater']
 
     mater_in = (mater >= 1e11) & (mater <= 3e11)
@@ -34,13 +34,13 @@ for i in range(number):
 
 # output material  Re(Ez) Im(Ez) T
     # load max_abs_Ez
-max_abs_Ez_path = "../../raw_data/training/TE_heat/Ez/max_abs_Ez.mat"
+max_abs_Ez_path = "../../../data/multiphys_bench/training/TE_heat/Ez/max_abs_Ez.mat"
 max_abs_Ez = sio.loadmat(max_abs_Ez_path)['max_abs_Ez']
 
 print(max_abs_Ez)
 
     # load T
-range_allT_paths = "../../raw_data/training/TE_heat/T/range_allT.mat"
+range_allT_paths = "../../../data/multiphys_bench/training/TE_heat/T/range_allT.mat"
 range_allT = sio.loadmat(range_allT_paths)['range_allT']
 
 max_T = range_allT[0,1]
@@ -50,14 +50,14 @@ min_T = range_allT[0,0]
 # nomalization
 for i in range(number):
     # Ez 
-    path_Ez = os.path.join(f"../../raw_data/training/TE_heat/Ez/", f'{i+1}.mat')
+    path_Ez = os.path.join(f"../../../data/multiphys_bench/training/TE_heat/Ez/", f'{i+1}.mat')
     Ez = sio.loadmat(path_Ez)['export_Ez']
     Ez_normalized = Ez / max_abs_Ez * 0.9  # Preserve phase; scale magnitude to [0, 0.9]
     real_Ez_normalized = np.real(Ez_normalized)
     imag_Ez_normalized = np.imag(Ez_normalized)
 
     # T 
-    path_T = os.path.join(f"../../raw_data/training/TE_heat/T/", f'{i+1}.mat')
+    path_T = os.path.join(f"../../../data/multiphys_bench/training/TE_heat/T/", f'{i+1}.mat')
     T = sio.loadmat(path_T)['export_T']
     T_normalized = (T - min_T) / (max_T - min_T) * 1.8 - 0.9 # [-0.9,0.9]
 

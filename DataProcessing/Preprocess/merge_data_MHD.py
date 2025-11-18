@@ -16,7 +16,7 @@ number = 10000
 
 # input Br
 # load max_Br  min_Br
-range_allBr_paths = "../../raw_data/training/MHD/Br/range_allBr.mat"
+range_allBr_paths = "../../../data/multiphys_bench/training/MHD/Br/range_allBr.mat"
 range_allBr = sio.loadmat(range_allBr_paths)['range_allBr']
 
 max_Br = range_allBr[0,1]
@@ -26,35 +26,35 @@ min_Br = range_allBr[0,0]
 # output Jx, Jy, Jz, u_u, u_v
 
 # load max_Jx min_Jx
-range_allJx_paths = "../../raw_data/training/MHD/Jx/range_allJx.mat"
+range_allJx_paths = "../../../data/multiphys_bench/training/MHD/Jx/range_allJx.mat"
 range_allJx = sio.loadmat(range_allJx_paths)['range_allJx']
 
 max_Jx = range_allJx[0,1]
 min_Jx = range_allJx[0,0]
 
 # load max_Jy min_Jy
-range_allJy_paths = "../../raw_data/training/MHD/Jy/range_allJy.mat"
+range_allJy_paths = "../../../data/multiphys_bench/training/MHD/Jy/range_allJy.mat"
 range_allJy = sio.loadmat(range_allJy_paths)['range_allJy']
 
 max_Jy = range_allJy[0,1]
 min_Jy = range_allJy[0,0]
 
 # load max_Jz min_Jz
-range_allJz_paths = "../../raw_data/training/MHD/Jz/range_allJz.mat"
+range_allJz_paths = "../../../data/multiphys_bench/training/MHD/Jz/range_allJz.mat"
 range_allJz = sio.loadmat(range_allJz_paths)['range_allJz']
 
 max_Jz = range_allJz[0,1]
 min_Jz = range_allJz[0,0]
 
 # load max_u_u min_u_u
-range_allu_u_paths = "../../raw_data/training/MHD/u_u/range_allu_u.mat"
+range_allu_u_paths = "../../../data/multiphys_bench/training/MHD/u_u/range_allu_u.mat"
 range_allu_u = sio.loadmat(range_allu_u_paths)['range_allu_u']
 
 max_u_u = range_allu_u[0,1]
 min_u_u = range_allu_u[0,0]
 
 # load max_u_v min_u_v
-range_allu_v_paths = "../../raw_data/training/MHD/u_v/range_allu_v.mat"
+range_allu_v_paths = "../../../data/multiphys_bench/training/MHD/u_v/range_allu_v.mat"
 range_allu_v = sio.loadmat(range_allu_v_paths)['range_allu_v']
 
 max_u_v = range_allu_v[0,1]
@@ -64,32 +64,32 @@ min_u_v = range_allu_v[0,0]
 # nomalization
 for i in range(number):
     # Br 
-    path_Br = os.path.join(f"../../raw_data/training/MHD/Br/", f'{i+1}.mat')
+    path_Br = os.path.join(f"../../../data/multiphys_bench/training/MHD/Br/", f'{i+1}.mat')
     Br = sio.loadmat(path_Br)['export_Br']
     Br_normalized = (Br - min_Br) / (max_Br - min_Br) * 1.8 - 0.9 # [-0.9,0.9]
 
     # Jx 
-    path_Jx = os.path.join(f"../../raw_data/training/MHD/Jx/", f'{i+1}.mat')
+    path_Jx = os.path.join(f"../../../data/multiphys_bench/training/MHD/Jx/", f'{i+1}.mat')
     Jx = sio.loadmat(path_Jx)['export_Jx']
     Jx_normalized = (Jx - min_Jx) / (max_Jx - min_Jx) * 1.8 - 0.9 # [-0.9,0.9]
 
     # Jy 
-    path_Jy = os.path.join(f"../../raw_data/training/MHD/Jy/", f'{i+1}.mat')
+    path_Jy = os.path.join(f"../../../data/multiphys_bench/training/MHD/Jy/", f'{i+1}.mat')
     Jy = sio.loadmat(path_Jy)['export_Jy']
     Jy_normalized = (Jy - min_Jy) / (max_Jy - min_Jy) * 1.8 - 0.9 # [-0.9,0.9]
 
     # Jz 
-    path_Jz = os.path.join(f"../../raw_data/training/MHD/Jz/", f'{i+1}.mat')
+    path_Jz = os.path.join(f"../../../data/multiphys_bench/training/MHD/Jz/", f'{i+1}.mat')
     Jz = sio.loadmat(path_Jz)['export_Jz']
     Jz_normalized = (Jz - min_Jz) / (max_Jz - min_Jz) * 1.8 - 0.9 # [-0.9,0.9]
 
     # u_u
-    path_u_u = os.path.join(f"../../raw_data/training/MHD/u_u/", f'{i+1}.mat')
+    path_u_u = os.path.join(f"../../../data/multiphys_bench/training/MHD/u_u/", f'{i+1}.mat')
     u_u = sio.loadmat(path_u_u)['export_u']
     u_u_normalized = (u_u - min_u_u) / (max_u_u - min_u_u) * 1.8 - 0.9 # [-0.9,0.9]
 
     # u_v
-    path_u_v = os.path.join(f"../../raw_data/training/MHD/u_v/", f'{i+1}.mat')
+    path_u_v = os.path.join(f"../../../data/multiphys_bench/training/MHD/u_v/", f'{i+1}.mat')
     u_v = sio.loadmat(path_u_v)['export_v']
     u_v_normalized = (u_v - min_u_v) / (max_u_v - min_u_v) * 1.8 - 0.9 # [-0.9,0.9]
 
