@@ -27,7 +27,7 @@ for i in range(number):
     mater_out = (mater >= 10) & (mater <= 20)
     normal_datamater = np.where(mater_in, (mater - 1e11) / (3e11 - 1e11) * 0.8 + 0.1, (mater - 10) / (20 - 10) * 0.8 - 0.9)
 
-    # 边上和内部设置为parm.Sigma_Si_coef(0.1,0.9)，其他设置为normal_Pho_Al(-0.9,-0.1)
+    # Set the edges and interior to parm.Sigma_Si_coef(0.1, 0.9), and set the others to normal_Pho_Al(-0.9, -0.1)
 
     mater_normalized[i,:,:] = normal_datamater
     
@@ -52,7 +52,7 @@ for i in range(number):
     # Ez 
     path_Ez = os.path.join(f"../../raw_data/training/TE_heat/Ez/", f'{i+1}.mat')
     Ez = sio.loadmat(path_Ez)['export_Ez']
-    Ez_normalized = Ez / max_abs_Ez * 0.9  # 保持相位不变  [0,0.9]
+    Ez_normalized = Ez / max_abs_Ez * 0.9  # Preserve phase; scale magnitude to [0, 0.9]
     real_Ez_normalized = np.real(Ez_normalized)
     imag_Ez_normalized = np.imag(Ez_normalized)
 

@@ -16,7 +16,7 @@ os.makedirs(os.path.dirname(output_base_path), exist_ok=True)
 
 data_base_path = "../../raw_data/training/Elder/"
 
-# -------------------- 加载归一化范围 --------------------
+# -------------------- Load normalization ranges --------------------
 range_allS_c = sio.loadmat(os.path.join(data_base_path, "S_c/range_S_c_t.mat"))['range_S_c_t'][0]
 range_allu_u = sio.loadmat(os.path.join(data_base_path, "u_u/range_u_u_t_999.mat"))['range_u_u_t_999']
 range_allu_v = sio.loadmat(os.path.join(data_base_path, "u_v/range_u_v_t_99.mat"))['range_u_v_t_99']
@@ -35,7 +35,7 @@ ranges = {
 def minmax_normalize(x, min_val, max_val):
     return -0.9 + 1.8 * (x - min_val) / (max_val - min_val)
 
-# -------------------- 主循环 --------------------
+# -------------------- Main loop --------------------
 for i in range(1, num_samples + 1):
     combined_data = np.zeros((H, W, C), dtype=np.float32)
 
@@ -50,7 +50,7 @@ for i in range(1, num_samples + 1):
     var_names = ['u_u', 'u_v', 'c_flow']
 
     for t in range(0, time_steps ):
-        # 时域场 t=0~10
+        # Time-domain fields t=0-10
         for var_idx, var in enumerate(var_names):
             min_val, max_val = ranges[var][t]
 
@@ -61,11 +61,11 @@ for i in range(1, num_samples + 1):
             ch_idx = 1 + var_idx * time_steps + t
             combined_data[:, :, ch_idx] = data_t_n
 
-    # ---------- 保存 .npy ----------
+    # ---------- Save .npy ----------
     out_path = output_base_path.format(i)
     np.save(out_path, combined_data)
 
-    # 打印部分信息
+    # Print some information
     if i % 200 == 0:
         print(f"[{i}] saved: {out_path}, shape: {combined_data.shape}, min: {combined_data.min():.4f}, max: {combined_data.max():.4f}")
 

@@ -20,7 +20,7 @@ def load_ranges(base_path,variables):
     rho_data = sio.loadmat(f"{base_path}/rho_water/range_allrho_water.mat")['range_allrho_water']
     ranges['rho_water'] = {'max': rho_data[0,1], 'min': rho_data[0,0]}
     
-    # 加载其他变量的范围
+    # Load ranges for other variables
     for var in variables:
         real_data = sio.loadmat(f"{base_path}/{var}/range_allreal_{var}.mat")[f'range_allreal_{var}']
         imag_data = sio.loadmat(f"{base_path}/{var}/range_allimag_{var}.mat")[f'range_allimag_{var}']
