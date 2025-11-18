@@ -60,7 +60,6 @@ range_allu_v = sio.loadmat(range_allu_v_paths)['range_allu_v']
 max_u_v = range_allu_v[0,1]
 min_u_v = range_allu_v[0,0]
 
-
 # nomalization
 for i in range(number):
     # Br 
